@@ -35,7 +35,7 @@ function calc(c){
  const A=c.ap,tot=A.reduce((s,a)=>s+mon(a),0),dif=A.filter(a=>!COM.includes(a.r)).reduce((s,a)=>s+mon(a),0);
  const hb=A.filter(a=>!NOH.includes(a.r)),ant=hb.filter(a=>mi(a.h)<mi("1994-07")).reduce((s,a)=>s+mon(a),0),hm=hb.reduce((s,a)=>s+mon(a),0),post=hm-ant;
  const age=c.nac?(Date.now()-new Date(c.nac))/(365.25*864e5):NaN;
- const ce=mi(c.cese),last=c.hp.filter(r=>{const m=mi(r.p);return m!=null&&m>ce-120&&m<=ce});
+ const ce=mi(c.cese),rows=c.hp.filter(r=>mi(r.p)!=null&&mi(r.p)<=ce).sort((a,b)=>mi(a.p)-mi(b.p)),last=rows.slice(-120);
  const co=p=>IDX[p]?IDX[c.cese]/IDX[p]:0,prom=last.reduce((s,r)=>s+((+r.i||0)-(+r.k||0))*co(r.p),0)/120;
  const PC=prom*.015*ant/12,PAP=prom*.015*post/12,PBU=+c.pbu||0;
  const [,Ed,Ad]=PAR[c.sexo],[,Edif,Adif]=PAR[c.reg],dY=dif/12,cY=tot/12-dY+(age>Ed?(age-Ed)/2:0),f=Math.min(1,dY/Adif),edP=Ed-(Ed-Edif)*f,apP=Ad-(Ad-Adif)*f,ef=dY+cY;
@@ -90,7 +90,7 @@ function vAp(c,r){return IMPC+c.ap.map((a,i)=>`<div class="card"><select onchang
 <div class="card"><div class="row"><span>Hasta 06/94</span><b>${ya(r.ant)}</b></div><div class="row"><span>Desde 07/94</span><b>${ya(r.tot-r.ant)}</b></div><div class="row"><span>Total aportes</span><b>${ya(r.tot)}</b></div></div>`}
 function vHa(c,r){return`<div class="card"><label>Mes de cese (actualización)<select onchange="C('cese',this.value)">${opts(PER.slice().reverse().slice(0,60),c.cese)}</select></label>
 <label>Pegar remuneraciones (una por línea: AAAA-MM importe excluir)<textarea id="pz" placeholder="2024-06 1374684.39 438681.23"></textarea></label><button class="s" onclick="imp()" style="margin-top:8px">Importar</button></div>
-<div class="card"><div class="row"><span>Meses con remuneración (ventana de 120)</span><b>${r.n}</b></div><div class="row"><span>Haber promedio</span><b class="big">$ ${f2(r.prom)}</b></div></div>
+<div class="card"><div class="row"><span>Meses usados (últimos 120)</span><b>${r.n}</b></div><div class="row"><span>Haber promedio</span><b class="big">$ ${f2(r.prom)}</b></div></div>
 ${c.hp.map((x,i)=>`<div class="card"><div class="g2"><label>Mes<input type="month" value="${esc(x.p)}" onchange="H(${i},'p',this.value)"></label><label>Remuneración<input type="number" step="any" inputmode="decimal" value="${x.i}" onchange="H(${i},'i',this.value)"></label></div>
 <div class="row"><label style="flex:1">Excluir (SAC u otros)<input type="number" step="any" inputmode="decimal" value="${x.k}" onchange="H(${i},'k',this.value)"></label><button class="x" onclick="delH(${i})">Quitar</button></div></div>`).join("")}<button onclick="addH()">+ Agregar mes</button>`}
 function vRes(c,r){const ok=r.okE&&r.okA,fa=Math.max(0,(r.edP-r.age)*12);return`<div class="card"><div class="mu">Estado del trámite</div><div class="${ok?"ok":"no"} big">${ok?"Derecho adquirido (prorrateo)":"No completa requisitos"}</div></div>
