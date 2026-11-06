@@ -35,7 +35,7 @@ function calc(c){
  const A=c.ap,tot=A.reduce((s,a)=>s+mon(a),0),dif=A.filter(a=>!COM.includes(a.r)).reduce((s,a)=>s+mon(a),0);
  const hb=A.filter(a=>!NOH.includes(a.r)),ant=hb.filter(a=>mi(a.h)<mi("1994-07")).reduce((s,a)=>s+mon(a),0),hm=hb.reduce((s,a)=>s+mon(a),0),post=hm-ant;
  const age=c.nac?(Date.now()-new Date(c.nac))/(365.25*864e5):NaN;
- const ce=mi(c.cese),rows=c.hp.filter(r=>mi(r.p)!=null&&mi(r.p)<=ce).sort((a,b)=>mi(a.p)-mi(b.p)),last=rows.slice(-120);
+ const ce=mi(c.cese),last=c.hp.filter(r=>{const m=mi(r.p);return m!=null&&m>ce-120&&m<=ce});
  const co=p=>IDX[p]?IDX[c.cese]/IDX[p]:0,prom=last.reduce((s,r)=>s+((+r.i||0)-(+r.k||0))*co(r.p),0)/120;
  const PC=prom*.015*ant/12,PAP=prom*.015*post/12,PBU=+c.pbu||0;
  const [,Ed,Ad]=PAR[c.sexo],[,Edif,Adif]=PAR[c.reg],dY=dif/12,cY=tot/12-dY+(age>Ed?(age-Ed)/2:0),f=Math.min(1,dY/Adif),edP=Ed-(Ed-Edif)*f,apP=Ad-(Ad-Adif)*f,ef=dY+cY;
@@ -51,6 +51,30 @@ function imp(){const c=cur();let n=0;$("#pz").value.split("\n").forEach(l=>{cons
  if(m)p=m[1]+"-"+m[2].padStart(2,"0");else{m=/(\d{1,2})\/(\d{4})/.exec(t[0]);if(!m)return;p=m[2]+"-"+m[1].padStart(2,"0")}
  const x=s=>parseFloat(String(s||0).replace(",","."))||0;c.hp.push({p,i:x(t[1]),k:x(t[2])});n++});save();R()}
 function bk(){try{const d=JSON.parse($("#bk").value);if(d.c){S=d;save();R()}}catch(e){alert("Respaldo inválido")}}
+const ymf=i=>Math.floor(i/12)+"-"+String(i%12+1).padStart(2,"0");
+function parseHL(L){const o={n:"",cuil:"",rem:{},emp:{}},num=s=>parseFloat(s.replace(/\./g,"").replace(",","."))||0;
+ L.forEach(l=>{l=l.replace(/\s+/g," ").trim();let m;
+  if(!o.n&&(m=/APELLIDO Y NOMBRE: (.+?)(?: ACREDITADO| CUIT\/L.*)?$/.exec(l)))o.n=m[1].trim();
+  if(!o.cuil&&(m=/VIGENTE: (\d{2})-?(\d{8})-?(\d)/.exec(l)))o.cuil=m[1]+m[2]+m[3];
+  if(m=/^(.+?) (\d{2}-\d{8}-\d) (?:[A-Z] )?(?:[A-Z] )?(\d{2})\/(\d{4}) \d+ \d+ ([\d.]+,\d{2}) ([\d.]+,\d{2}) [\d.]+,\d{2} ([\d.]+,\d{2})$/.exec(l)){
+   const p=m[4]+"-"+m[3],r=o.rem[p]||(o.rem[p]={i:0,k:0}),k=m[1]+"|"+m[2];r.i+=num(m[6]);r.k+=num(m[7]);(o.emp[k]=o.emp[k]||new Set()).add(mi(p))}});
+ const ap=[],cnt={};
+ for(const k in o.emp){const a=[...o.emp[k]].sort((x,y)=>x-y),rz=k.replace("|"," ");a.forEach(x=>cnt[x]=(cnt[x]||0)+1);let s=a[0],p=a[0];
+  for(let j=1;j<=a.length;j++){if(a[j]!==p+1){ap.push({s:rz,d:ymf(s),h:ymf(p)});s=a[j]}p=a[j]}}
+ ap.sort((a,b)=>a.d<b.d?-1:1);o.ap=ap;o.ov=Object.values(cnt).filter(n=>n>1).length;return o}
+function loadPdf(){return window.pdfjsLib?Promise.resolve():new Promise((ok,ko)=>{const s=document.createElement("script"),B="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";s.src=B+"pdf.min.js";s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc=B+"pdf.worker.min.js";ok()};s.onerror=()=>ko(new Error("No se pudo cargar el lector de PDF. Revisá la conexión a internet."));document.head.appendChild(s)})}
+async function impPDF(inp){const f=inp.files[0],c=cur();if(!f)return;
+ if((c.ap.length||c.hp.length)&&!confirm("Esto reemplaza los aportes y las remuneraciones cargados en esta ficha. ¿Seguir?")){inp.value="";return}
+ try{await loadPdf();const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise,L=[];
+  for(let p=1;p<=pdf.numPages;p++){const t=await(await pdf.getPage(p)).getTextContent(),it=t.items.filter(i=>i.str.trim()).map(i=>({x:i.transform[4],y:i.transform[5],s:i.str})).sort((a,b)=>b.y-a.y||a.x-b.x),rows=[];
+   it.forEach(i=>{let r=rows[rows.length-1];if(!r||Math.abs(r.y-i.y)>3)rows.push(r={y:i.y,a:[]});r.a.push(i)});
+   rows.forEach(r=>L.push(r.a.sort((a,b)=>a.x-b.x).map(i=>i.s).join(" ")))}
+  const d=parseHL(L);if(!d.ap.length)throw new Error("No encontré aportes en este PDF. ¿Es la historia laboral de ANSES?");
+  c.ap=d.ap.map(a=>({r:c.sexo,s:a.s,d:a.d,h:a.h}));c.hp=Object.keys(d.rem).sort().map(p=>({p,i:Math.round(d.rem[p].i*100)/100,k:Math.round(d.rem[p].k*100)/100}));
+  if(d.n&&!c.nombre)c.nombre=d.n;if(d.cuil&&!c.cuil)c.cuil=d.cuil;save();R();
+  alert("Importé "+c.ap.length+" períodos y "+c.hp.length+" meses con remuneración."+(d.ov?"\n\nAtención: "+d.ov+" meses figuran con más de un empleador a la vez. Revisá los totales.":"")+"\n\nRevisá el régimen de cada período: quedaron como régimen común.")
+ }catch(e){alert(e.message||"No se pudo leer el PDF")}inp.value=""}
+const IMPC='<div class="card"><b>Importar desde ANSES</b><div class="mu">Elegí el PDF de la historia laboral. Se lee en este teléfono y no se sube a ningún lado. Reemplaza los aportes y las remuneraciones de esta ficha.</div><input type="file" accept="application/pdf" onchange="impPDF(this)"></div>';
 function inp(l,k,t,v,x){return`<label>${l}<input type="${t}" ${x||""} value="${esc(v)}" onchange="C('${k}',this.value)"></label>`}
 function vFicha(c,r){return`<div class="card">${inp("Nombre","nombre","text",c.nombre)}${inp("CUIL","cuil","text",c.cuil,'inputmode="numeric"')}${inp("Fecha de nacimiento","nac","date",c.nac)}
 <div class="mu">${isNaN(r.age)?"":"Edad: "+r.age.toFixed(1)+" años"}</div>
@@ -60,13 +84,13 @@ ${inp("PBU ($)","pbu","number",c.pbu,'step="any" inputmode="decimal"')}</div>
 <h2>Proceso y observaciones</h2><div class="card"><textarea onchange="C('obs',this.value)" placeholder="Fecha de evaluación, certificaciones solicitadas, monotributo…">${esc(c.obs)}</textarea></div>
 <h2>Claves (opcional)</h2><div class="card">${inp("Clave fiscal","cf","password",c.cf)}${inp("Clave Seguridad Social","css","password",c.css)}<div class="mu">Se guardan solo en este teléfono, sin cifrar.</div></div>
 <button class="s" onclick="borrar()" style="margin-top:10px">Eliminar ficha</button>`}
-function vAp(c,r){return c.ap.map((a,i)=>`<div class="card"><select onchange="A(${i},'r',this.value)">${opts(Object.keys(PAR),a.r,k=>k+" – "+PAR[k][0])}</select>
+function vAp(c,r){return IMPC+c.ap.map((a,i)=>`<div class="card"><select onchange="A(${i},'r',this.value)">${opts(Object.keys(PAR),a.r,k=>k+" – "+PAR[k][0])}</select>
 <input placeholder="Razón social / CUIT" value="${esc(a.s)}" onchange="A(${i},'s',this.value)"><div class="g2"><label>Desde<input type="month" value="${esc(a.d)}" onchange="A(${i},'d',this.value)"></label><label>Hasta<input type="month" value="${esc(a.h)}" onchange="A(${i},'h',this.value)"></label></div>
 <div class="row"><b>${ya(mon(a))}</b><button class="x" onclick="delA(${i})">Quitar</button></div></div>`).join("")+`<button onclick="addA()">+ Agregar período</button>
 <div class="card"><div class="row"><span>Hasta 06/94</span><b>${ya(r.ant)}</b></div><div class="row"><span>Desde 07/94</span><b>${ya(r.tot-r.ant)}</b></div><div class="row"><span>Total aportes</span><b>${ya(r.tot)}</b></div></div>`}
 function vHa(c,r){return`<div class="card"><label>Mes de cese (actualización)<select onchange="C('cese',this.value)">${opts(PER.slice().reverse().slice(0,60),c.cese)}</select></label>
 <label>Pegar remuneraciones (una por línea: AAAA-MM importe excluir)<textarea id="pz" placeholder="2024-06 1374684.39 438681.23"></textarea></label><button class="s" onclick="imp()" style="margin-top:8px">Importar</button></div>
-<div class="card"><div class="row"><span>Meses usados (últimos 120)</span><b>${r.n}</b></div><div class="row"><span>Haber promedio</span><b class="big">$ ${f2(r.prom)}</b></div></div>
+<div class="card"><div class="row"><span>Meses con remuneración (ventana de 120)</span><b>${r.n}</b></div><div class="row"><span>Haber promedio</span><b class="big">$ ${f2(r.prom)}</b></div></div>
 ${c.hp.map((x,i)=>`<div class="card"><div class="g2"><label>Mes<input type="month" value="${esc(x.p)}" onchange="H(${i},'p',this.value)"></label><label>Remuneración<input type="number" step="any" inputmode="decimal" value="${x.i}" onchange="H(${i},'i',this.value)"></label></div>
 <div class="row"><label style="flex:1">Excluir (SAC u otros)<input type="number" step="any" inputmode="decimal" value="${x.k}" onchange="H(${i},'k',this.value)"></label><button class="x" onclick="delH(${i})">Quitar</button></div></div>`).join("")}<button onclick="addH()">+ Agregar mes</button>`}
 function vRes(c,r){const ok=r.okE&&r.okA,fa=Math.max(0,(r.edP-r.age)*12);return`<div class="card"><div class="mu">Estado del trámite</div><div class="${ok?"ok":"no"} big">${ok?"Derecho adquirido (prorrateo)":"No completa requisitos"}</div></div>
