@@ -32,7 +32,7 @@ const IDX={"2000-01":102.041309,"2000-02":102.636355,"2000-03":102.137803,"2000-
 try{Object.assign(IDX,(JSON.parse(localStorage.getItem("jubi"))||{}).idx||{})}catch(e){}
 const PAR={"H-Comun":["Régimen general varones",65,30],"M-Comun":["Régimen general mujeres",60,30],"H-Doc":["Docentes varones",60,25],"M-Doc":["Docentes mujeres",57,25],"Cam":["Choferes de camiones",55,25],"Petro":["Petroleros",50,25],"Cole":["Servicios urbanos (ómnibus)",55,30],"Insa":["Lugares insalubres",55,25],"Frio":["Cámaras frías",55,25],"Herra":["Herradores",55,25],"Fundi":["Laminación / fundición",50,25],"Vidrio":["Fabricación de vidrio",50,25],"UOCRA":["Construcción (UOCRA)",55,25],"Salud":["Personal de salud",55,30],"24476":["Moratoria 24476",0,30],"UCAP":["Plan de pago UCAP",0,30],"Art19":["Art. 19 (exceso de edad)",0,30]};
 let COM=["H-Comun","M-Comun","24476","UCAP","Art19"],NOH=["24476","UCAP"],DIF=Object.keys(PAR).filter(k=>!COM.includes(k)),PER=Object.keys(IDX).sort(),LAST=PER[PER.length-1];
-const $=s=>document.querySelector(s);let S;try{S=JSON.parse(localStorage.getItem("jubi")||"")}catch(e){}S=S&&S.c?S:{c:[],cur:null};let tab="ficha",pt="fichas";
+const $=s=>document.querySelector(s);let S;try{S=JSON.parse(localStorage.getItem("jubi")||"")}catch(e){}S=S&&S.c?S:{c:[],cur:null};S.cur=null;let tab="ficha",pt="fichas";
 const save=()=>{try{localStorage.setItem("jubi",JSON.stringify(S))}catch(e){alert("No se pudo guardar: no hay espacio en el navegador. Descargá tus fichas y liberá espacio.")}};
 const cur=()=>S.c.find(x=>x.id==S.cur);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
