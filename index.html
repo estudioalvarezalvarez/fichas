@@ -161,8 +161,8 @@ const psOf=c=>{const s=new Set();(c.ucc||[]).forEach(x=>msd({d:x.d,h:x.h}).forEa
 ucS=(c,a)=>{const ps=psOf(c),m=msd(a);return{all:m.length,pd:m.filter(([x])=>ps.has(x)).length}},
 ucTxt=(c,a)=>{if(a.r!="UCAP")return"";const s=ucS(c,a);return'<div class="mu">'+(s.pd==s.all?"UCAP pagadas: suman a los aportes.":"UCAP pagadas "+s.pd+" de "+s.all+". Las pendientes no suman al total.")+'</div>'};
 const srt=(arr,key)=>arr.map((x,i)=>[x,i]).sort((a,b)=>a[0]===pin?-1:b[0]===pin?1:key(a[0])<key(b[0])?1:key(a[0])>key(b[0])?-1:b[1]-a[1]);
-const TC=()=>{showCl=!showCl;R()},goDocs=()=>{cur().hasDocs=true;save();T("docs")},
-TLs=c=>[["ficha","Ficha"],["aportes","Aportes"],["haber","Haber"],["res","Resultado"]].concat(+c.nucap>0?[["ucap","UCAP"]]:[],(c.hasDocs||(c.docs||[]).length)?[["docs","Docs"]]:[]);
+const TC=()=>{showCl=!showCl;R()},goDocs=()=>T("docs"),
+TLs=c=>[["ficha","Ficha"],["aportes","Aportes"],["haber","Haber"],["res","Resultado"]].concat(+c.nucap>0?[["ucap","UCAP"]]:[],((c.docs||[]).length||tab=="docs")?[["docs","Docs"]]:[]);
 const IDB=()=>new Promise((ok,ko)=>{const q=indexedDB.open("jubi_files",1);q.onupgradeneeded=()=>q.result.createObjectStore("f",{keyPath:"id"});q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)});
 const idbPut=async o=>{const d=await IDB();return new Promise((ok,ko)=>{const t=d.transaction("f","readwrite");t.objectStore("f").put(o);t.oncomplete=ok;t.onerror=()=>ko(t.error)})};
 const idbGet=async id=>{const d=await IDB();return new Promise((ok,ko)=>{const q=d.transaction("f").objectStore("f").get(id);q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)})};
@@ -192,7 +192,8 @@ const edClose=()=>{const d=$("#ed");if(d)d.style.display="none";EW=null};
 function edSave(){cur()[EK]=EW.toDataURL("image/jpeg",.8);save();edClose();R()}
 const ANSES_TURNO="https://servicioswww.anses.gob.ar/TurnosInternet/Burbujas/Prestaciones",
 turno=()=>{cur().tOn=true;save();window.open(ANSES_TURNO,"_blank");R()},
-TURNOC=c=>(c.tOn||c.tf||c.th||c.tl)?'<h2>Turno ANSES</h2><div class="card">'+inp("Fecha","tf","date",c.tf)+inp("Hora","th","time",c.th)+inp("Lugar","tl","text",c.tl)+'</div>':'';
+TURNOC=c=>(c.tOn||c.tf||c.th||c.tl)?'<h2>Turno ANSES <button class="x" onclick="quitarTurno()" aria-label="Quitar turno" style="font-size:18px;padding:0 8px">✕</button></h2><div class="card">'+inp("Fecha","tf","date",c.tf)+inp("Hora","th","time",c.th)+inp("Lugar","tl","text",c.tl)+'</div>':'';
+const quitarTurno=()=>{const c=cur();if((c.tf||c.th||c.tl)&&!confirm("¿Quitar el turno y borrar lo anotado?"))return;c.tOn=false;c.tf=c.th=c.tl="";save();R()};
 function inp(l,k,t,v,x){return`<label>${l}<input type="${t}" ${x||""} value="${esc(v)}" onchange="C('${k}',this.value)"></label>`}
 function vFicha(c,r){return`${TURNOC(c)}<h2>Historia laboral</h2>${IMPC}<h2>Datos personales</h2><div class="card">${inp("Nombre","nombre","text",c.nombre)}${inp("CUIL","cuil","text",c.cuil,'inputmode="numeric"')}${inp("Fecha de nacimiento","nac","date",c.nac)}
 <div class="mu">${c.nac?"Edad: "+ageS(c.nac):""}</div>
